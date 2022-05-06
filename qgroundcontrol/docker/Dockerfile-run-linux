@@ -58,6 +58,7 @@ RUN apt update && apt -y --quiet --no-install-recommends install \
 		wget \
 		xvfb \
 		zlib1g-dev \
+		xauth \
 	&& apt-get -y autoremove \
 	&& apt-get clean autoclean \
 	&& rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/* \
@@ -76,15 +77,27 @@ RUN locale-gen en_US.UTF-8 && dpkg-reconfigure locales
 
 # create user with id 1000 to not run commands/generate files as root
 #USER user
-RUN useradd user --create-home --home-dir /home/user --shell /bin/bash --uid 1000 
-USER user
+#RUN useradd user --create-home --home-dir /home/user --shell /bin/bash --uid 1000 
+#USER user
+
+#https://stackoverflow.com/questions/44683119/dockerfile-replicate-the-host-user-uid-and-gid-to-the-image
+ARG UNAME=dev
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+USER $UNAME
+
+ENV PATH="/home/$UNAME/.local/bin:${PATH}"
 
 
-WORKDIR /gcs/qgcs/
+WORKDIR /home/$UNAME
 
-COPY QGroundControl.AppImage .
+#COPY QGroundControl.AppImage .
+RUN wget https://d176tv9ibo4jno.cloudfront.net/latest/QGroundControl.AppImage
 RUN pwd && ls
 
 ENV APPIMAGE_EXTRACT_AND_RUN=1
 
 #CMD qmake /project/source && make -j$(nproc)
+
